@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface LinkCheckoutProps {
   link: {
@@ -16,6 +16,13 @@ interface LinkCheckoutProps {
 
 export const LinkCheckoutView: React.FC<LinkCheckoutProps> = ({ link }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryUserId = searchParams.get('userId') || '';
+  const queryEmail = searchParams.get('email') || '';
+  const queryName = searchParams.get('name') || '';
+  const queryCallbackUrl = searchParams.get('callbackUrl') || '';
+  const queryPlan = searchParams.get('plan') || '';
+
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
@@ -25,7 +32,7 @@ export const LinkCheckoutView: React.FC<LinkCheckoutProps> = ({ link }) => {
   const [couponError, setCouponError] = useState('');
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
-  const [customerName, setCustomerName] = useState('');
+  const [customerName, setCustomerName] = useState(queryName);
   const [customerPhone, setCustomerPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -81,8 +88,12 @@ export const LinkCheckoutView: React.FC<LinkCheckoutProps> = ({ link }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           coupon_code: appliedCoupon ? appliedCoupon.code : undefined,
-          customer_name: customerName.trim() || undefined,
+          customer_name: customerName.trim() || queryName || undefined,
           customer_phone: customerPhone.trim() || undefined,
+          customer_email: queryEmail || undefined,
+          callback_url: queryCallbackUrl || undefined,
+          user_id: queryUserId || undefined,
+          plan: queryPlan || undefined,
         }),
       });
 

@@ -13,7 +13,7 @@ export async function POST(
     const pool = getPool();
 
     const linkRes = await pool.query(
-      `SELECT l.*, COALESCE(m.business_name, m.name) as merchant_name 
+      `SELECT l.*, COALESCE(m.business_name, m.name) as merchant_name, m.webhook_url as merchant_webhook_url 
        FROM payment_links l
        JOIN merchants m ON l.merchant_id = m.id
        WHERE l.id = $1 AND l.is_active = true`,
@@ -73,12 +73,23 @@ export async function POST(
     const slot = await allocateSlot(baseAmount, orderId);
     const expiresAt = new Date(Date.now() + 90 * 1000);
 
+    const callbackUrl = body.callback_url || null;
+    const webhookUrl = body.webhook_url || link.merchant_webhook_url || null;
+    const metadataObj = {
+      ...(body.metadata || {}),
+      link_id: link.id,
+      title: link.title,
+      coupon: appliedCoupon,
+      userId: body.user_id || body.userId || undefined,
+      plan: body.plan || (link.title?.toLowerCase().includes('pro') ? 'pro' : link.title?.toLowerCase().includes('employee') ? 'employee' : 'pro'),
+    };
+
     await pool.query(
       `INSERT INTO orders (
           id, merchant_id, base_amount, offset_cents, final_amount,
           vpa_id, tier, status, customer_name, customer_email, customer_phone,
-          metadata, expires_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10, $11, $12)`,
+          metadata, callback_url, webhook_url, expires_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9, $10, $11, $12, $13, $14)`,
       [
         orderId,
         link.merchant_id,
@@ -90,11 +101,9 @@ export async function POST(
         body.customer_name || null,
         body.customer_email || null,
         body.customer_phone || null,
-        JSON.stringify({
-          link_id: link.id,
-          title: link.title,
-          coupon: appliedCoupon,
-        }),
+        JSON.stringify(metadataObj),
+        callbackUrl,
+        webhookUrl,
         expiresAt,
       ]
     );
