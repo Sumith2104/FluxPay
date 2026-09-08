@@ -151,7 +151,7 @@ export const ApiKeysClient: React.FC<{ merchant: any }> = ({ merchant }) => {
         </h2>
         <pre className="text-xs font-mono bg-[#0b0b0b] p-4 rounded border border-[#27272a] text-zinc-300 overflow-x-auto">
 {`// 1. Create a payment order from your backend:
-const res = await fetch("http://localhost:3001/api/v1/orders", {
+const res = await fetch("https://payments.fluxbasedb.me/api/v1/orders", {
   method: "POST",
   headers: {
     "Authorization": "Bearer ${merchant.api_key}",
