@@ -26,8 +26,10 @@ export async function POST(req: NextRequest) {
     if (contentType.includes('application/json')) {
       try {
         const body = await req.json();
-        rawText = String(body.message || body.sms_body || body.text || body.body || JSON.stringify(body));
-        sender = String(body.sender || body.from || 'MOBILE_NOTIFICATION');
+        const title = String(body.title || body.notif_title || body.notification_title || '').trim();
+        const text = String(body.message || body.sms_body || body.text || body.body || body.notif_text || body.notification_text || '').trim();
+        rawText = title ? `${title}: ${text}` : (text || JSON.stringify(body));
+        sender = String(body.sender || body.from || body.app || body.package || body.notif_app_name || 'NOTIFICATION_READER');
         if (body.utr) utr = String(body.utr);
         if (body.amount && !isNaN(parseFloat(body.amount))) amount = parseFloat(body.amount);
       } catch {

@@ -22,7 +22,7 @@ export function parsePaymentAlert(rawText: string): {
   // 1. Extract 12-digit UTR
   let utr: string | null = null;
   const utrMatch =
-    text.match(/(?:UPI\s*Ref\s*No\.?|Ref\s*No\.?|UPI|IMPS|Ref|UTR|Txn|RRN)[:\s;#\.]*(\d{12})/i) ||
+    text.match(/(?:UPI\s*Ref\s*No\.?|Ref\s*No\.?|UPI|IMPS|Ref|UTR|Txn|Transaction\s*ID|RRN)[:\s;#\.]*(\d{12})/i) ||
     text.match(/\b(\d{12})\b/);
   if (utrMatch) {
     utr = utrMatch[1];
@@ -31,7 +31,7 @@ export function parsePaymentAlert(rawText: string): {
   // 2. Extract Exact Decimal Amount (e.g. ₹499.12 or 499.12)
   let amount: number | null = null;
   const amtMatch =
-    text.match(/(?:sent|amount of|credited with|credited|received|payment\s+of|deposited)\s*(?:INR|Rs\.?|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i) ||
+    text.match(/(?:sent|amount of|credited with|credited|received|paid you|paid|payment\s+of|deposited)\s*(?:INR|Rs\.?|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i) ||
     text.match(/(?:INR|Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) ||
     text.match(/([\d,]+(?:\.\d{1,2})?)\s*(?:INR|Rs\.?|₹)/i) ||
     text.match(/([\d]+\.\d{2})/);
