@@ -5,6 +5,14 @@ import { checkRateLimit } from '@/lib/rate-limiter';
 import { generateOrderId } from '@/lib/utils';
 import { redis } from '@/lib/redis';
 
+function getGatewayBaseUrl(): string {
+  let raw = process.env.NEXT_PUBLIC_GATEWAY_URL || process.env.VERCEL_URL || 'https://payments.fluxbasedb.me';
+  if (!/^https?:\/\//i.test(raw)) {
+    raw = `https://${raw}`;
+  }
+  return raw.replace(/\/+$/, '');
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Authenticate Merchant via API Key
@@ -114,7 +122,7 @@ export async function POST(req: NextRequest) {
 
       if (existingOrder.rows.length > 0) {
         const o = existingOrder.rows[0];
-        const baseUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:3001';
+        const baseUrl = getGatewayBaseUrl();
         const responseData = {
           success: true,
           order_id: o.id,
@@ -183,7 +191,7 @@ export async function POST(req: NextRequest) {
       ]
     );
 
-    const baseUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:3001';
+    const baseUrl = getGatewayBaseUrl();
     const payload = {
       success: true,
       order_id: orderId,
