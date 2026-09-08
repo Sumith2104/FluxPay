@@ -81,7 +81,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
     discount = Math.round(discount * 100) / 100;
 
-    const newBase = Math.max(1, Math.round((originalBase - discount) * 100) / 100);
+    const newBase = Math.max(1, Math.round(originalBase - discount));
     const newFinal = parseFloat((newBase + offsetCents / 100).toFixed(2));
 
     const updatedMetadata = {
@@ -149,7 +149,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'No coupon currently applied' }, { status: 400 });
     }
 
-    const originalBase = parseFloat(metadata.coupon.original_amount || order.base_amount);
+    const originalBase = Math.round(parseFloat(metadata.coupon.original_amount || order.base_amount));
     const offsetCents = parseInt(order.offset_cents || '0', 10);
     const couponCode = metadata.coupon.code;
 
