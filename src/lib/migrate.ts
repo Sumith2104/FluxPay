@@ -168,17 +168,39 @@ export async function runMigrations(): Promise<void> {
       GROUP BY v.id, v.vpa_address, v.label, v.current_load, v.is_active;
     `);
 
-    // Seed default active VPA if none exist
-    const vpaCount = await client.query('SELECT COUNT(*) FROM gateway.vpas');
-    if (parseInt(vpaCount.rows[0].count, 10) === 0) {
-      const defaultUpi = process.env.DEFAULT_UPI_ID || '918310870493@waaxis';
-      const defaultSuffix = process.env.DEFAULT_UPI_SUFFIX || '0493';
+    // Seed active VPAs from environment (supports single or multiple comma-separated VPAs)
+    // Format: UPI_VPAS="vpa1@bank:suffix1, vpa2@bank:suffix2, ..."
+    const upiListEnv = process.env.UPI_VPAS || '';
+    const vpasToSeed: Array<{ address: string; suffix: string | null; label: string }> = [];
+
+    if (upiListEnv) {
+      const entries = upiListEnv.split(',').map((s) => s.trim()).filter(Boolean);
+      for (let i = 0; i < entries.length; i++) {
+        const parts = entries[i].split(':');
+        const address = parts[0].trim().toLowerCase();
+        const suffix = parts[1] ? parts[1].trim() : (process.env.DEFAULT_UPI_SUFFIX || null);
+        if (address.includes('@')) {
+          vpasToSeed.push({ address, suffix, label: `UPI Channel ${i + 1}` });
+        }
+      }
+    }
+
+    if (vpasToSeed.length === 0) {
+      const defaultUpi = (process.env.DEFAULT_UPI_ID || '918310870493@waaxis').trim().toLowerCase();
+      const defaultSuffix = (process.env.DEFAULT_UPI_SUFFIX || '0493').trim();
+      vpasToSeed.push({ address: defaultUpi, suffix: defaultSuffix, label: 'Primary UPI Handle' });
+    }
+
+    for (const vpa of vpasToSeed) {
       await client.query(
-        `INSERT INTO gateway.vpas (vpa_address, label, account_suffix, is_active)
-         VALUES ($1, $2, $3, true)`,
-        [defaultUpi, 'Primary UPI Handle', defaultSuffix]
+        `INSERT INTO vpas (vpa_address, label, account_suffix, is_active)
+         VALUES ($1, $2, $3, true)
+         ON CONFLICT (vpa_address) DO UPDATE SET 
+           account_suffix = COALESCE(EXCLUDED.account_suffix, vpas.account_suffix),
+           is_active = true`,
+        [vpa.address, vpa.label, vpa.suffix]
       );
-      console.log(`[Gateway Migrate] Seeded initial VPA: ${defaultUpi}`);
+      console.log(`[Gateway Migrate] Configured active VPA: ${vpa.address} (suffix: ${vpa.suffix || 'any'})`);
     }
 
     _migrationDone = true;
