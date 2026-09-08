@@ -331,6 +331,12 @@ def fluxpay_webhook():
                     <td className="p-3">The integer or decimal order amount in INR (e.g. 499.00)</td>
                   </tr>
                   <tr>
+                    <td className="p-3 text-[#ff6600]">coupon_code</td>
+                    <td className="p-3 text-[#71717a]">string</td>
+                    <td className="p-3 text-[#71717a]">No</td>
+                    <td className="p-3">Optional discount coupon (e.g. "SAVE20", "FLAT50") automatically validated and deducted</td>
+                  </tr>
+                  <tr>
                     <td className="p-3 text-[#ff6600]">customer_name</td>
                     <td className="p-3 text-[#71717a]">string</td>
                     <td className="p-3 text-[#71717a]">No</td>

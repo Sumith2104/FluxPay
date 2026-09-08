@@ -39,6 +39,7 @@ When your customer clicks "Pay" or "Checkout", make a `POST` request to `/api/v1
 ```json
 {
   "amount": 499.00,
+  "coupon_code": "SAVE20",
   "customer_name": "Rajesh Kumar",
   "customer_email": "rajesh@example.com",
   "customer_phone": "9876543210",

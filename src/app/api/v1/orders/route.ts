@@ -46,13 +46,51 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const rawAmount = parseFloat(body.amount);
+    let rawAmount = parseFloat(body.amount);
 
     if (isNaN(rawAmount) || rawAmount <= 0) {
       return NextResponse.json(
         { error: 'Validation Error: amount must be a positive number' },
         { status: 400 }
       );
+    }
+
+    let appliedCoupon: { code: string; discount: number; original_amount: number } | null = null;
+    if (body.coupon_code) {
+      const code = String(body.coupon_code).trim().toUpperCase();
+      const couponRes = await pool.query(
+        `SELECT * FROM coupons WHERE merchant_id = $1 AND code = $2 AND is_active = true`,
+        [merchant.id, code]
+      );
+      if (couponRes.rows.length > 0) {
+        const c = couponRes.rows[0];
+        const minAmt = parseFloat(c.min_order_amount || '0');
+        const isNotExpired = !c.expires_at || new Date(c.expires_at) >= new Date();
+        const underLimit = !c.usage_limit || c.used_count < c.usage_limit;
+
+        if (rawAmount >= minAmt && isNotExpired && underLimit) {
+          let discount = 0;
+          const val = parseFloat(c.discount_value);
+          if (c.discount_type === 'percentage') {
+            discount = (rawAmount * val) / 100;
+            if (c.max_discount_amount) {
+              discount = Math.min(discount, parseFloat(c.max_discount_amount));
+            }
+          } else {
+            discount = Math.min(val, rawAmount);
+          }
+          discount = Math.round(discount * 100) / 100;
+          const originalAmt = rawAmount;
+          rawAmount = Math.max(1, Math.round((rawAmount - discount) * 100) / 100);
+          appliedCoupon = { code: c.code, discount, original_amount: originalAmt };
+
+          // Increment coupon used_count
+          await pool.query(
+            `UPDATE coupons SET used_count = used_count + 1 WHERE id = $1`,
+            [c.id]
+          );
+        }
+      }
     }
 
     const idempotencyKey = req.headers.get('idempotency-key') || body.idempotency_key || null;
@@ -138,7 +176,7 @@ export async function POST(req: NextRequest) {
         body.customer_name || null,
         body.customer_email || null,
         body.customer_phone || null,
-        JSON.stringify(body.metadata || {}),
+        JSON.stringify({ ...(body.metadata || {}), coupon: appliedCoupon }),
         body.callback_url || null,
         body.webhook_url || null,
         expiresAt,
@@ -155,6 +193,7 @@ export async function POST(req: NextRequest) {
         final_amount: slot.finalAmount,
         vpa: slot.vpaAddress,
         status: 'pending',
+        coupon: appliedCoupon,
         expires_at: expiresAt.toISOString(),
       },
       checkout_url: `${baseUrl}/pay/${orderId}`,
@@ -162,6 +201,7 @@ export async function POST(req: NextRequest) {
       final_amount: slot.finalAmount,
       vpa: slot.vpaAddress,
       tier: slot.tier,
+      coupon: appliedCoupon,
       expires_at: expiresAt.toISOString(),
       status: 'pending',
     };

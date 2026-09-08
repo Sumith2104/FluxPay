@@ -1,18 +1,21 @@
-import { notFound, redirect } from 'next/navigation';
+import React from 'react';
+import { notFound } from 'next/navigation';
 import { getPool } from '@/lib/db';
-import { allocateSlot } from '@/lib/slot-engine';
-import { generateOrderId } from '@/lib/utils';
+import { LinkCheckoutView } from '@/components/link-checkout-view';
 
-export default async function PaymentLinkRedirectPage({
-  params,
-}: {
+interface PageProps {
   params: Promise<{ linkId: string }>;
-}) {
+}
+
+export default async function PaymentLinkPage({ params }: PageProps) {
   const { linkId } = await params;
   const pool = getPool();
 
   const linkRes = await pool.query(
-    `SELECT * FROM payment_links WHERE id = $1 AND is_active = true`,
+    `SELECT l.*, COALESCE(m.business_name, m.name) as merchant_name 
+     FROM payment_links l
+     JOIN merchants m ON l.merchant_id = m.id
+     WHERE l.id = $1 AND l.is_active = true`,
     [linkId]
   );
 
@@ -21,29 +24,17 @@ export default async function PaymentLinkRedirectPage({
   }
 
   const link = linkRes.rows[0];
-  const baseAmount = Math.floor(parseFloat(link.amount));
-  const orderId = generateOrderId();
 
-  const slot = await allocateSlot(baseAmount, orderId);
-  const expiresAt = new Date(Date.now() + 90 * 1000);
-
-  await pool.query(
-    `INSERT INTO orders (
-        id, merchant_id, base_amount, offset_cents, final_amount,
-        vpa_id, tier, status, metadata, expires_at
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9)`,
-    [
-      orderId,
-      link.merchant_id,
-      baseAmount,
-      slot.offsetCents,
-      slot.finalAmount,
-      slot.vpaId,
-      slot.tier,
-      JSON.stringify({ link_id: link.id, title: link.title }),
-      expiresAt,
-    ]
+  return (
+    <LinkCheckoutView
+      link={{
+        id: link.id,
+        merchantId: link.merchant_id,
+        merchantName: link.merchant_name,
+        title: link.title,
+        description: link.description,
+        amount: parseFloat(link.amount),
+      }}
+    />
   );
-
-  redirect(`/pay/${orderId}`);
 }

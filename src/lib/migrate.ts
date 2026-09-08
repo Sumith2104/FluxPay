@@ -146,6 +146,24 @@ export async function runMigrations(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_gw_payment_links_merchant ON gateway.payment_links (merchant_id, created_at DESC);
 
+      CREATE TABLE IF NOT EXISTS gateway.coupons (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          merchant_id UUID NOT NULL REFERENCES gateway.merchants(id) ON DELETE CASCADE,
+          code VARCHAR(50) NOT NULL,
+          discount_type VARCHAR(20) NOT NULL DEFAULT 'percentage',
+          discount_value NUMERIC(10, 2) NOT NULL,
+          min_order_amount NUMERIC(10, 2) DEFAULT 0.00,
+          max_discount_amount NUMERIC(10, 2),
+          usage_limit INT,
+          used_count INT DEFAULT 0,
+          is_active BOOLEAN DEFAULT true,
+          expires_at TIMESTAMPTZ,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          CONSTRAINT uq_gateway_coupon_merchant UNIQUE (merchant_id, code)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_gw_coupons_merchant ON gateway.coupons (merchant_id, is_active);
+
       CREATE OR REPLACE VIEW gateway.vpa_health AS
       SELECT
           v.id,
