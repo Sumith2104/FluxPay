@@ -89,7 +89,7 @@ print("Payment URL:", order["payment_url"])`
             <nav className="hidden md:flex items-center gap-6 text-xs font-mono text-[#a1a1aa]">
               <a href="#features" className="hover:text-[#f4f4f5] transition">FEATURES</a>
               <a href="#architecture" className="hover:text-[#f4f4f5] transition">ARCHITECTURE</a>
-              <a href="#api" className="hover:text-[#f4f4f5] transition">API_SPECS</a>
+              <Link href="/docs" className="hover:text-[#f4f4f5] transition text-[#ff6600]">API_DOCS</Link>
               <a href="#settlement" className="hover:text-[#f4f4f5] transition">SETTLEMENTS</a>
             </nav>
           </div>
@@ -402,7 +402,7 @@ print("Payment URL:", order["payment_url"])`
           <div className="flex items-center gap-6 text-[11px]">
             <Link href="/login" className="hover:text-[#f4f4f5] transition">LOGIN</Link>
             <Link href="/signup" className="hover:text-[#f4f4f5] transition">SIGNUP</Link>
-            <a href="#api" className="hover:text-[#f4f4f5] transition">DOCUMENTATION</a>
+            <Link href="/docs" className="hover:text-[#f4f4f5] transition text-[#ff6600]">DOCUMENTATION</Link>
             <span className="text-[#3f3f46]">|</span>
             <span className="text-emerald-500 font-semibold">[ALL SYSTEMS NORMAL]</span>
           </div>
